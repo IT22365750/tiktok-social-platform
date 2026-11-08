@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Flame, PlusCircle, Search, MessageSquare, Bell, Upload, Sparkles } from 'lucide-react';
+import { Flame, PlusCircle, MessageSquare, Bell, Upload, Sparkles } from 'lucide-react';
 import { useSocialStore } from '@/stores/useSocialStore';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Button } from '@/components/ui/Button';
@@ -19,6 +19,8 @@ export const Navbar: React.FC = () => {
   const [caption, setCaption] = useState('');
   const [tags, setTags] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
+  const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const unreadNotifications = notifications.filter((n) => !n.read).length;
   const unreadMessages = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
@@ -28,6 +30,17 @@ export const Navbar: React.FC = () => {
     if (searchQuery.trim()) {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }
+  };
+
+  const handleVideoSelected = (file: File | undefined) => {
+    if (!file) return;
+    setSelectedVideo(file);
+    setVideoUrl('');
+    setIsUploadOpen(true);
+  };
+
+  const openVideoPicker = () => {
+    videoInputRef.current?.click();
   };
 
   const handleCreatePost = (e: React.FormEvent) => {
@@ -41,11 +54,13 @@ export const Navbar: React.FC = () => {
       .map((t) => t.trim().toLowerCase())
       .filter(Boolean);
 
-    createPost(caption, parsedTags, videoUrl || undefined);
+    const uploadedVideoUrl = selectedVideo ? URL.createObjectURL(selectedVideo) : videoUrl;
+    createPost(caption, parsedTags, uploadedVideoUrl || undefined);
     toast.success('Your video was uploaded successfully! 🎉');
     setCaption('');
     setTags('');
     setVideoUrl('');
+    setSelectedVideo(null);
     setIsUploadOpen(false);
   };
 
@@ -83,13 +98,14 @@ export const Navbar: React.FC = () => {
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Create / Upload Button */}
           <Button
-            onClick={() => setIsUploadOpen(true)}
+            onClick={openVideoPicker}
             variant="gradient"
             size="sm"
-            className="hidden sm:flex shadow-purple-500/20"
+            className="flex shadow-purple-500/20"
+            title="Upload a video"
           >
             <PlusCircle className="w-4 h-4 mr-1.5" />
-            <span>Upload</span>
+            <span className="hidden sm:inline">Upload</span>
           </Button>
 
           {/* Messages Link */}
@@ -129,6 +145,17 @@ export const Navbar: React.FC = () => {
           </Link>
         </div>
       </div>
+
+      <input
+        ref={videoInputRef}
+        type="file"
+        accept="video/*"
+        className="sr-only"
+        onChange={(e) => {
+          handleVideoSelected(e.target.files?.[0]);
+          e.target.value = '';
+        }}
+      />
 
       {/* Upload Modal */}
       <Modal
@@ -175,6 +202,22 @@ export const Navbar: React.FC = () => {
               placeholder="https://... (or leave empty to use our premium preview reel)"
               className="w-full px-3.5 py-2.5 text-sm rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
             />
+          </div>
+
+          <div>
+            <label
+              className="flex items-center justify-center gap-2 w-full px-3.5 py-3 text-sm font-semibold rounded-xl border border-dashed border-purple-300 dark:border-purple-700/70 text-purple-700 dark:text-purple-300 bg-purple-50/60 dark:bg-purple-950/20 hover:bg-purple-100/70 dark:hover:bg-purple-950/40 transition-colors cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                openVideoPicker();
+              }}
+            >
+              <Upload className="w-4 h-4" />
+              {selectedVideo ? selectedVideo.name : 'Choose a video from your device'}
+            </label>
+            <p className="text-[11px] text-zinc-400 mt-1.5">
+              Select a video file or use the URL field above.
+            </p>
           </div>
 
           <div className="p-4 rounded-2xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200/50 dark:border-purple-800/30 flex items-start gap-3">
