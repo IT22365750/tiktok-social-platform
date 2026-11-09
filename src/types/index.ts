@@ -7,6 +7,7 @@ export interface User {
   username: string;
   name: string;
   avatar: string;
+  coverPhoto?: string;
   bio: string;
   verified?: boolean;
   followersCount: number;

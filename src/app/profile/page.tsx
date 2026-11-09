@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useEffect, useRef, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -29,17 +29,31 @@ function ProfileContent() {
   const searchParams = useSearchParams();
   const userId = searchParams.get('id');
 
-  const { currentUser, users, posts, toggleFollowUser, updateSettings } = useSocialStore();
+  const { currentUser, users, posts, toggleFollowUser, updateUser } = useSocialStore();
   const [activeTab, setActiveTab] = useState<'posts' | 'saved' | 'liked'>('posts');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editName, setEditName] = useState(currentUser.name);
   const [editBio, setEditBio] = useState(currentUser.bio);
   const [editWebsite, setEditWebsite] = useState(currentUser.website || '');
+  const [editCoverPhoto, setEditCoverPhoto] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | undefined>();
   const [copiedLink, setCopiedLink] = useState(false);
+  const coverPhotoInputRef = useRef<HTMLInputElement>(null);
 
   // Determine which user profile to display
   const targetUser = userId ? users.find((u) => u.id === userId) || currentUser : currentUser;
   const isSelf = targetUser.id === currentUser.id;
+
+  useEffect(() => {
+    if (!editCoverPhoto) {
+      setCoverPreview(targetUser.coverPhoto);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(editCoverPhoto);
+    setCoverPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [editCoverPhoto, targetUser.coverPhoto]);
 
   // Filter content tabs
   const userPosts = posts.filter((p) => p.author.id === targetUser.id);
@@ -48,10 +62,14 @@ function ProfileContent() {
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    currentUser.name = editName;
-    currentUser.bio = editBio;
-    currentUser.website = editWebsite;
+    updateUser(currentUser.id, {
+      name: editName,
+      bio: editBio,
+      website: editWebsite,
+      ...(editCoverPhoto ? { coverPhoto: URL.createObjectURL(editCoverPhoto) } : {}),
+    });
     toast.success('Profile updated successfully! ✨');
+    setEditCoverPhoto(null);
     setIsEditModalOpen(false);
   };
 
@@ -66,8 +84,17 @@ function ProfileContent() {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Profile Header Card */}
       <div className="relative p-6 sm:p-8 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
-        {/* Decorative Top Accent Banner */}
-        <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-orange-500/30" />
+        {/* Profile Cover */}
+        <div className="absolute top-0 left-0 right-0 h-32 overflow-hidden">
+          {targetUser.coverPhoto ? (
+            <img
+              src={targetUser.coverPhoto}
+              alt={`${targetUser.name} cover`}
+              className="w-full h-full object-cover"
+            />
+          ) : null}
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-900/50 via-pink-800/30 to-orange-900/50" />
+        </div>
 
         <div className="relative pt-6 flex flex-col sm:flex-row items-center sm:items-end justify-between gap-6">
           {/* Avatar & Main Info */}
@@ -304,6 +331,33 @@ function ProfileContent() {
         maxWidth="md"
       >
         <form onSubmit={handleSaveProfile} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">
+              Cover Photo
+            </label>
+            <button
+              type="button"
+              onClick={() => coverPhotoInputRef.current?.click()}
+              className="relative w-full h-24 rounded-xl overflow-hidden border border-dashed border-purple-300 dark:border-purple-700 bg-zinc-100 dark:bg-zinc-800 text-xs font-semibold text-purple-700 dark:text-purple-300"
+            >
+              <img
+                src={coverPreview || ''}
+                alt="Cover preview"
+                className="w-full h-full object-cover opacity-70"
+              />
+              <span className="absolute inset-0 flex items-center justify-center bg-black/30 text-white">
+                {editCoverPhoto ? editCoverPhoto.name : 'Choose a new cover photo'}
+              </span>
+            </button>
+            <input
+              ref={coverPhotoInputRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => setEditCoverPhoto(e.target.files?.[0] || null)}
+            />
+          </div>
+
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">
               Display Name

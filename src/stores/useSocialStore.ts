@@ -19,6 +19,7 @@ interface SocialStore {
 
   // Following state
   toggleFollowUser: (userId: string) => void;
+  updateUser: (userId: string, updates: Partial<User>) => void;
 
   // Notifications
   notifications: Notification[];
@@ -229,6 +230,28 @@ export const useSocialStore = create<SocialStore>()(
         });
       },
 
+      updateUser: (userId, updates) => {
+        set((state) => {
+          const updatedUsers = state.users.map((user) =>
+            user.id === userId ? { ...user, ...updates } : user
+          );
+          const updatedCurrentUser =
+            state.currentUser.id === userId
+              ? { ...state.currentUser, ...updates }
+              : state.currentUser;
+
+          return {
+            currentUser: updatedCurrentUser,
+            users: updatedUsers,
+            posts: state.posts.map((post) =>
+              post.author.id === userId
+                ? { ...post, author: { ...post.author, ...updates } }
+                : post
+            ),
+          };
+        });
+      },
+
       markNotificationAsRead: (id: string) => {
         set((state) => ({
           notifications: state.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)),
@@ -358,6 +381,7 @@ export const useSocialStore = create<SocialStore>()(
     {
       name: 'tiktok-social-store',
       partialize: (state) => ({
+        currentUser: state.currentUser,
         posts: state.posts,
         users: state.users,
         notifications: state.notifications,
@@ -365,6 +389,26 @@ export const useSocialStore = create<SocialStore>()(
         messages: state.messages,
         settings: state.settings,
       }),
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<SocialStore>;
+        const storedUsers = persisted.users || [];
+        const users = mockUsers.map((defaultUser) => {
+          const storedUser = storedUsers.find((user) => user.id === defaultUser.id);
+          return storedUser ? { ...defaultUser, ...storedUser } : defaultUser;
+        });
+        const currentUser = users.find((user) => user.id === 'current_user') || currentState.currentUser;
+
+        return {
+          ...currentState,
+          ...persisted,
+          currentUser,
+          users,
+          posts: (persisted.posts || currentState.posts).map((post) => {
+            const author = users.find((user) => user.id === post.author.id);
+            return author ? { ...post, author } : post;
+          }),
+        };
+      },
     }
   )
 );
