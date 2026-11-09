@@ -36,6 +36,14 @@ export const Modal: React.FC<ModalProps> = ({
     };
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    const handleShortcutClose = () => {
+      if (isOpen) onClose();
+    };
+    window.addEventListener('toksocial:close-modal', handleShortcutClose);
+    return () => window.removeEventListener('toksocial:close-modal', handleShortcutClose);
+  }, [isOpen, onClose]);
+
   const maxWidthClass = {
     sm: 'max-w-sm',
     md: 'max-w-md',

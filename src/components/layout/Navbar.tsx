@@ -45,9 +45,16 @@ export const Navbar: React.FC = () => {
 
   useEffect(() => {
     const handleMobileUpload = () => openVideoPicker();
+    const handleFocusSearch = () => {
+      document.getElementById('global-search')?.focus();
+    };
     window.addEventListener('toksocial:open-upload', handleMobileUpload);
-    return () => window.removeEventListener('toksocial:open-upload', handleMobileUpload);
-  });
+    window.addEventListener('toksocial:focus-search', handleFocusSearch);
+    return () => {
+      window.removeEventListener('toksocial:open-upload', handleMobileUpload);
+      window.removeEventListener('toksocial:focus-search', handleFocusSearch);
+    };
+  }, []);
 
   const handleCreatePost = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +100,7 @@ export const Navbar: React.FC = () => {
         {/* Global Search Bar */}
         <form onSubmit={handleSearchSubmit} className="flex-1 max-w-md hidden md:block">
           <SearchInput
+            id="global-search"
             value={searchQuery}
             onChange={setSearchQuery}
             onClear={() => setSearchQuery('')}
