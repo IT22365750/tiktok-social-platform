@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Flame, PlusCircle, MessageSquare, Bell, Upload, Sparkles } from 'lucide-react';
@@ -42,6 +42,12 @@ export const Navbar: React.FC = () => {
   const openVideoPicker = () => {
     videoInputRef.current?.click();
   };
+
+  useEffect(() => {
+    const handleMobileUpload = () => openVideoPicker();
+    window.addEventListener('toksocial:open-upload', handleMobileUpload);
+    return () => window.removeEventListener('toksocial:open-upload', handleMobileUpload);
+  });
 
   const handleCreatePost = (e: React.FormEvent) => {
     e.preventDefault();

@@ -396,15 +396,29 @@ export const useSocialStore = create<SocialStore>()(
           const storedUser = storedUsers.find((user) => user.id === defaultUser.id);
           return storedUser ? { ...defaultUser, ...storedUser } : defaultUser;
         });
-        const currentUser = users.find((user) => user.id === 'current_user') || currentState.currentUser;
+        const storedCurrentUser = persisted.currentUser;
+        const currentUser = {
+          ...(users.find((user) => user.id === 'current_user') || currentState.currentUser),
+          ...(storedCurrentUser || {}),
+          avatar: currentState.currentUser.avatar,
+        };
+        const mergedUsers = users.map((user) =>
+          user.id === currentUser.id ? currentUser : user
+        );
+        const storedPosts = persisted.posts || [];
+        const savedPostIds = new Set(storedPosts.map((post) => post.id));
+        const posts = [
+          ...currentState.posts.filter((post) => !savedPostIds.has(post.id)),
+          ...storedPosts,
+        ];
 
         return {
           ...currentState,
           ...persisted,
           currentUser,
-          users,
-          posts: (persisted.posts || currentState.posts).map((post) => {
-            const author = users.find((user) => user.id === post.author.id);
+          users: mergedUsers,
+          posts: posts.map((post) => {
+            const author = mergedUsers.find((user) => user.id === post.author.id);
             return author ? { ...post, author } : post;
           }),
         };

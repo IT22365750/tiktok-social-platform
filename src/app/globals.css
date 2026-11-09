@@ -49,6 +49,12 @@ body {
   font-feature-settings: "rlig" 1, "calt" 1;
 }
 
+@media (max-width: 767px) {
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 /* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;

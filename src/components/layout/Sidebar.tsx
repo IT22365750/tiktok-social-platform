@@ -38,11 +38,12 @@ export const Sidebar: React.FC<{ className?: string }> = ({ className }) => {
         <nav className="space-y-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`));
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   'flex items-center justify-between px-4 py-3 rounded-2xl font-semibold text-sm transition-all duration-200 group',
                   isActive
